@@ -43,12 +43,16 @@ def generate_legal_moves(grid, player):
     l_piece = PLAYER_L1 if player == PLAYER_L1 else PLAYER_L2
     positions = find_positions(grid, l_piece)
     
-    for (r, c) in positions:
+    # For each L piece position
+    for pos in positions:
+        r, c = pos
+        # For each possible destination
         for dr in [-1, 0, 1]:
             for dc in [-1, 0, 1]:
                 new_r, new_c = r + dr, c + dc
                 if 0 <= new_r < len(grid) and 0 <= new_c < len(grid[0]) and grid[new_r][new_c] == '.':
-                    legal_moves.append((new_r, new_c))
+                    # Return complete move: (from_row, from_col, to_row, to_col)
+                    legal_moves.append((r, c, new_r, new_c))
     return legal_moves
 
 # Check if the game is over
@@ -70,8 +74,9 @@ def game_over(grid):
 def apply_move(grid, move, player):
     """Apply a move to the grid and return the new grid."""
     l_piece = 'L1' if player == PLAYER_L1 else 'L2'
-    old_row, old_col = move[0], move[1]
-    new_row, new_col = move[2], move[3]
+    #old_row, old_col = move[0], move[1]
+    #new_row, new_col = move[2], move[3]
+    old_row, old_col, new_row, new_col = move
     
     # Update the grid with the new positions
     grid[old_row][old_col] = '.'
@@ -126,10 +131,12 @@ def ai_move(grid):
     """Make the best move for the AI (L1) using minimax."""
     best_move = None
     best_value = float('-inf')
-    legal_moves = generate_legal_moves(grid, PLAYER_L1)  # L1 moves for the AI
+    legal_moves = generate_legal_moves(grid, PLAYER_L1)
+    
     for move in legal_moves:
         new_grid = copy.deepcopy(grid)
-        new_grid = apply_move(new_grid, (move[0], move[1], move[2], move[3]), PLAYER_L1)
+        # move is already in the correct format (from_row, from_col, to_row, to_col)
+        new_grid = apply_move(new_grid, move, PLAYER_L1)
         move_value = minimax(new_grid, depth=3, maximizing_player=False, alpha=float('-inf'), beta=float('inf'))
         if move_value > best_value:
             best_value = move_value
@@ -143,15 +150,30 @@ def ai_move(grid):
 def move_L_piece(grid, player):
     """Handle moving an L piece for a player."""
     print(f"\n{player}'s turn to move L piece")
-    legal_moves = generate_legal_moves(grid, player)
     
+    # Get current L piece positions
+    current_positions = find_positions(grid, player)
+    print("Current L piece positions:", current_positions)
+    
+    # Then get valid moves
+    legal_moves = generate_legal_moves(grid, player)
     print("Available moves:", legal_moves)
+    
     while True:
         try:
-            row = int(input("Enter row (0-3): "))
-            col = int(input("Enter column (0-3): "))
-            if (row, col) in legal_moves:
-                return apply_move(grid, (row, col), player)
+            # Select piece to move
+            print("\nSelect L piece to move:")
+            from_row = int(input("Current piece row (0-3): "))
+            from_col = int(input("Current piece column (0-3): "))
+            
+            # Select destination
+            print("\nSelect where to move:")
+            to_row = int(input("New row (0-3): "))
+            to_col = int(input("New column (0-3): "))
+            
+            # Validate move
+            if (from_row, from_col) in current_positions and (to_row, to_col) in legal_moves:
+                return apply_move(grid, (from_row, from_col, to_row, to_col), player)
             else:
                 print("Invalid move. Try again.")
         except ValueError:
@@ -203,15 +225,24 @@ def play_game():
             grid = move_neutral_piece(grid, PLAYER_L2)
         
         elif mode == '2':  # Human vs AI
-            grid = move_L_piece(grid, PLAYER_L1)  # Human's move
-            if game_over(grid): break
-            print("\nAI's Turn:")
-            ai_move_choice = ai_move(grid)  # AI chooses a move
-            if ai_move_choice is None:  # AI cannot move, game ends
-                print("AI has no moves left.")
-                break
-            grid = apply_move(grid, ai_move_choice, PLAYER_L2)  # AI's move
-            if game_over(grid): break
+            print("\nWho should move first? (1) Human (2) AI: ")
+            ####
+            if input().strip() == '2':
+                print("\nAI's Turn:")
+                ai_move_choice = ai_move(grid)  # AI chooses a move
+                if ai_move_choice is None:  # AI cannot move, game ends
+                    print("AI has no moves left.")
+                    break
+                grid = apply_move(grid, ai_move_choice, PLAYER_L2)  # AI's move
+                if game_over(grid): break
+            else:
+                ####User nmove
+                grid = move_L_piece(grid, PLAYER_L1)  # Human's move
+                if game_over(grid): break
+                print("\nAI's Turn:")
+
+            #######
+           
         
         elif mode == '3':  # AI vs AI
             ai_move_choice_1 = ai_move(grid)
